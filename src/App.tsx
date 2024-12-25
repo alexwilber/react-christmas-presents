@@ -3,9 +3,12 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import claimIcon from './assets/WW_Claim.svg';
 import claimedIcon from './assets/WW_Claimed.svg';
+import santaPicture from './assets/santa.png';
+import reindeerPicture from './assets/reindeer.png';
 import { ref, get, update } from 'firebase/database';
 import { db } from '../firebase-config';
 import Snowfall from 'react-snowfall'
+
 
 interface Game {
   id: string;
@@ -28,8 +31,20 @@ function App() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [shakeGameId, setShakeGameId] = useState<string | null>(null);
   const [uniqueCategories, setUniqueCategories] = useState<string[]>([]);
+  const [tempUsername, setTempUsername] = useState('');
+  const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
 
   useEffect(() => {
+    const savedUsername = localStorage.getItem('tempUsername');
+      if (savedUsername) {
+        setTempUsername(savedUsername);
+      }
+
+      // Clear username on refresh
+      window.onload = () => {
+        localStorage.removeItem('tempUsername');
+        setTempUsername('');
+      };
     const fetchFilteredGames = async () => {
       try {
         let gamesQuery = ref(db, 'games');
@@ -124,18 +139,22 @@ function App() {
 
   const handleVerifyUsername = async (gameId: string, username: string | undefined) => {
     if (!username.trim()) {
-      // Set error message and trigger shake effect
-      setGames(games => games.map(game => 
-        game.id === gameId 
-          ? { ...game, errorMessage: "Please enter a valid username." } 
-          : game
-      ));
+      // Handle invalid username
+      setGames(games =>
+        games.map(game =>
+          game.id === gameId
+            ? { ...game, errorMessage: "Please enter a valid username." }
+            : game
+        )
+      );
       setShakeGameId(gameId);
-  
-      // Remove the shake effect after the animation
       setTimeout(() => setShakeGameId(null), 500);
       return;
     }
+  
+    // Save the username in localStorage
+    localStorage.setItem('tempUsername', username);
+    setTempUsername(username);
   
     const usersRef = ref(db, 'users');
     const snapshot = await get(usersRef);
@@ -154,29 +173,35 @@ function App() {
           await update(ref(db, `users/${userKey}`), { ticketsAvailable: newTicketCount, gamesClaimed: newGamesClaimed });
           updateGameAsClaimed(gameId, username);
         } else {
-          setGames(games => games.map(game => 
-            game.id === gameId 
-              ? { ...game, errorMessage: "Game name not found for claiming." } 
-              : game
-          ));
+          setGames(games =>
+            games.map(game =>
+              game.id === gameId
+                ? { ...game, errorMessage: "Game name not found for claiming." }
+                : game
+            )
+          );
           setShakeGameId(gameId);
           setTimeout(() => setShakeGameId(null), 500);
         }
       } else {
-        setGames(games => games.map(game => 
-          game.id === gameId 
-            ? { ...game, errorMessage: "You do not have enough tickets to claim this game." } 
-            : game
-        ));
+        setGames(games =>
+          games.map(game =>
+            game.id === gameId
+              ? { ...game, errorMessage: "You do not have enough tickets to claim this game." }
+              : game
+          )
+        );
         setShakeGameId(gameId);
         setTimeout(() => setShakeGameId(null), 500);
       }
     } else {
-      setGames(games => games.map(game => 
-        game.id === gameId 
-          ? { ...game, errorMessage: "Error fetching user data from the database." } 
-          : game
-      ));
+      setGames(games =>
+        games.map(game =>
+          game.id === gameId
+            ? { ...game, errorMessage: "Error fetching user data from the database." }
+            : game
+        )
+      );
       setShakeGameId(gameId);
       setTimeout(() => setShakeGameId(null), 500);
     }
@@ -262,23 +287,165 @@ function App() {
   
 
   return (
-    <div className="App" style={{ padding: '20px 0', textAlign: 'center', maxWidth: '1200px', margin: '0 auto', backgroundColor: '#121212', color: 'white' }}>
+    <div
+      className="App"
+      style={{
+        padding: '20px 0',
+        textAlign: 'center',
+        maxWidth: '1200px',
+        margin: '0 auto',
+        backgroundColor: '#121212',
+        color: 'white',
+      }}
+    >
       <Snowfall />
-      <br></br>
-      <div style={{ position: 'fixed', top: -30, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '1200px', background: '#333', zIndex: 1000, textAlign: 'center', padding: '0px 0' }}>
-        <h1>Wilbo's Free Games:</h1>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+  
+      {/* Info Modal */}
+      {isInfoModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#222',
+              color: 'white',
+              padding: '20px',
+              borderRadius: '8px',
+              maxWidth: '500px',
+              textAlign: 'center',
+            }}
+          >
+            <h2>About This Site</h2>
+            <p>
+            Welcome to Wilbo's Free Games! Here, you can claim free games using your tickets. 
+          Browse the games, filter by category or claim status, and enjoy! Please note that 
+          claimed games are tied to your username. Also, It's not in aplhabetical order. Sorry. Also you have to
+          type your name like twice to actually see the code, sorry! Go to <a href="https://twitch.tv/Wilbos_World">https://twitch.tv/Wilbos_World</a> and redeem the "Redeem Free Game!" channel redemption reward to claim a game here! Please note you can only claim one game per person! Thanks!
+          Merry Christmas!
+            </p>
+            <button
+              onClick={() => setIsInfoModalOpen(false)}
+              style={{
+                marginTop: '20px',
+                padding: '10px 20px',
+                backgroundColor: '#9364B2',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+  
+      {/* Header Section */}
+      <div
+        style={{
+          position: 'fixed',
+          top: -30,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '100%',
+          maxWidth: '1200px',
+          background: '#333',
+          zIndex: 1000,
+          textAlign: 'center',
+          padding: '0px 0',
+        }}
+      >
+        <h1>
+          <img
+            src={santaPicture}
+            style={{
+              width: '200px',
+              height: '150px',
+              position: 'absolute',
+              left: '20px',
+            }}
+            alt="Santa Claus"
+          />
+          <img
+            src={reindeerPicture}
+            style={{
+              width: '160px',
+              height: '150px',
+              position: 'absolute',
+              right: '20px',
+            }}
+            alt="Reindeer Sticker"
+          />
+          Wilbo's Free Games:
+        </h1>
+  
+        {/* Info Button */}
+        <button
+          onClick={() => setIsInfoModalOpen(true)}
+          style={{
+            position: 'absolute',
+            top: '120px',
+            right: '180px',
+            backgroundColor: '#9364B2',
+            color: 'white',
+            padding: '10px',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer',
+          }}
+        >
+         Website Info
+        </button>
+  
+        {/* Search and Filters */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '10px',
+          }}
+        >
           <input
             type="text"
             placeholder="Search by game name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ marginBottom: '20px', padding: '10px', width: '300px', borderRadius: '5px', border: '1px solid #555', backgroundColor: '#222', color: 'white' }}
+            style={{
+              marginBottom: '20px',
+              padding: '10px',
+              width: '300px',
+              borderRadius: '5px',
+              border: '1px solid #555',
+              backgroundColor: '#222',
+              color: 'white',
+            }}
           />
           <select
             value={filter}
-            onChange={(e) => setFilter(e.target.value as 'all' | 'claimed' | 'unclaimed')}
-            style={{ marginBottom: '20px', padding: '10px', borderRadius: '5px', border: '1px solid #555', backgroundColor: '#222', color: 'white' }}
+            onChange={(e) =>
+              setFilter(e.target.value as 'all' | 'claimed' | 'unclaimed')
+            }
+            style={{
+              marginBottom: '20px',
+              padding: '10px',
+              borderRadius: '5px',
+              border: '1px solid #555',
+              backgroundColor: '#222',
+              color: 'white',
+            }}
           >
             <option value="all">All Games</option>
             <option value="claimed">Claimed</option>
@@ -287,7 +454,14 @@ function App() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            style={{ marginBottom: '20px', padding: '10px', borderRadius: '5px', border: '1px solid #555', backgroundColor: '#222', color: 'white' }}
+            style={{
+              marginBottom: '20px',
+              padding: '10px',
+              borderRadius: '5px',
+              border: '1px solid #555',
+              backgroundColor: '#222',
+              color: 'white',
+            }}
           >
             <option value="all">All Categories</option>
             {uniqueCategories.map((category, index) => (
@@ -298,38 +472,168 @@ function App() {
           </select>
         </div>
       </div>
-      <div style={{ marginTop: '100px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around', gap: '20px' }}>
-       
-        {filteredGames.map(game => (
-          <div key={game.id} className={shakeGameId === game.id ? "shake" : ""} style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', maxWidth: '500px', flex: '1 1 40%', margin: '0 10px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '15px', boxShadow: '0 4px 8px rgba(0,0,0,0.3)', borderRadius: '8px', width: '100%', backgroundColor: '#1a1a1a' }}>
-              {game.imageUrl && <img src={game.imageUrl} alt={`${game.name} cover`} style={{ width: '300px', height: '300px', objectFit: 'cover', marginBottom: '15px' }} />}
+  
+      {/* Main Content */}
+      <div
+        style={{
+          marginTop: '100px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'space-around',
+          gap: '20px',
+        }}
+      >
+        {filteredGames.map((game) => (
+          <div
+            key={game.id}
+            className={shakeGameId === game.id ? 'shake' : ''}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '10px',
+              maxWidth: '500px',
+              flex: '1 1 40%',
+              margin: '0 10px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '15px',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+                borderRadius: '8px',
+                width: '100%',
+                backgroundColor: '#1a1a1a',
+              }}
+            >
+              {game.imageUrl && (
+                <img
+                  src={game.imageUrl}
+                  alt={`${game.name} cover`}
+                  style={{
+                    width: '300px',
+                    height: '300px',
+                    objectFit: 'cover',
+                    marginBottom: '15px',
+                  }}
+                />
+              )}
               <span style={{ fontWeight: 'bold' }}>{game.name}</span>
               {game.category && (
-                <p style={{ margin: '0px 0', color: '#888', fontSize: '14px' }}>
+                <p
+                  style={{
+                    margin: '0px 0',
+                    color: '#888',
+                    fontSize: '14px',
+                  }}
+                >
                   Categories: {game.category.join(', ')}
                 </p>
               )}
-              {game.steamLink && <a href={game.steamLink} target="_blank" rel="noopener noreferrer" style={{ marginTop: '10px' }}>Steam Store Page <img style={{ maxWidth:"12px"}} src="https://static-00.iconduck.com/assets.00/external-link-icon-2048x2048-wo7lfgrz.png"></img></a>}
+              {game.steamLink && (
+                <a
+                  href={game.steamLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ marginTop: '10px' }}
+                >
+                  Steam Store Page{' '}
+                  <img
+                    style={{ maxWidth: '12px' }}
+                    src="https://static-00.iconduck.com/assets.00/external-link-icon-2048x2048-wo7lfgrz.png"
+                  />
+                </a>
+              )}
               {!game.claimed && !game.verifying && (
                 <>
-                  <input type="text" value={game.username} onChange={(e) => handleUsernameChange(game.id, e.target.value)} placeholder="Enter your username" style={{ marginTop: '10px', padding: '12px', borderRadius: '5px', border: '1px solid #555', backgroundColor: '#222', color: 'white' }} />
-                  <div style={{ position: 'relative', width: '100%', cursor: 'pointer', paddingTop: '19px' }} onClick={() => handleVerifyUsername(game.id, game.username)}>
-                    <img src={claimIcon} alt="Claim" style={{ width: '100%' }} />
-                    <span style={{ position: 'absolute', top: '40%', left: '45%', transform: 'translate(-50%, -50%)', color: '#9364B2', fontWeight: 'bold', fontSize: '24px' }}>Choose Gift</span>
-                    <p style={{ marginTop: '10px', color: 'white' }}>Enter your username to use a ticket to claim this game!</p>
+                  <input
+                    type="text"
+                    value={game.username}
+                    onChange={(e) =>
+                      handleUsernameChange(game.id, e.target.value)
+                    }
+                    placeholder="Enter your username"
+                    style={{
+                      marginTop: '10px',
+                      padding: '12px',
+                      borderRadius: '5px',
+                      border: '1px solid #555',
+                      backgroundColor: '#222',
+                      color: 'white',
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'relative',
+                      width: '100%',
+                      cursor: 'pointer',
+                      paddingTop: '19px',
+                    }}
+                    onClick={() => handleVerifyUsername(game.id, game.username)}
+                  >
+                    <img
+                      src={claimIcon}
+                      alt="Claim"
+                      style={{ width: '100%' }}
+                    />
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '40%',
+                        left: '45%',
+                        transform: 'translate(-50%, -50%)',
+                        color: '#9364B2',
+                        fontWeight: 'bold',
+                        fontSize: '24px',
+                      }}
+                    >
+                      Choose Gift
+                    </span>
+                    <p
+                      style={{ marginTop: '10px', color: 'white' }}
+                    >
+                      Enter your username to use a ticket to claim this game!
+                    </p>
                   </div>
                 </>
               )}
               {game.claimed && (
-                <div style={{ position: 'relative', width: '100%', cursor: 'not-allowed', paddingTop: '19px' }}>
-                  <img src={claimedIcon} alt="Gift Claimed!" style={{ width: '100%' }} />
-                  <span style={{ position: 'relative', bottom:"77px", left: '20%', transform: 'translate(-50%, -50%)', color: '#9364B2', fontWeight: 'bold', fontSize: '24px' }}>Claimed!</span>
-                  
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    cursor: 'not-allowed',
+                    paddingTop: '19px',
+                  }}
+                >
+                  <img
+                    src={claimedIcon}
+                    alt="Gift Claimed!"
+                    style={{ width: '100%' }}
+                  />
+                  <span
+                    style={{
+                      position: 'relative',
+                      bottom: '77px',
+                      left: '20%',
+                      transform: 'translate(-50%, -50%)',
+                      color: '#9364B2',
+                      fontWeight: 'bold',
+                      fontSize: '24px',
+                    }}
+                  >
+                    Claimed!
+                  </span>
+  
                   <input
                     type="text"
                     value={usernameVerification[game.id] || ''}
-                    onChange={(e) => handleUsernameVerificationChange(game.id, e.target.value)}
+                    onChange={(e) =>
+                      handleUsernameVerificationChange(game.id, e.target.value)
+                    }
                     placeholder="Enter username used..."
                     style={{
                       marginTop: '10px',
@@ -339,25 +643,32 @@ function App() {
                       backgroundColor: '#222',
                       color: 'white',
                       position: 'relative',
-                      right: '46px'
+                      right: '46px',
                     }}
                   />
                   {isVerifiedUser(game) && game.giftLink && (
-                    <p style={{ marginTop: '10px', color: 'white' }}><b>Game Code/Link:</b> {game.giftLink}</p>
+                    <p style={{ marginTop: '10px', color: 'white' }}>
+                      <b>Game Code/Link:</b> {game.giftLink}
+                    </p>
                   )}
                   {isNotVerifiedUser(game) && game.giftLink && (
-                    <p style={{ marginTop: '10px', color: 'white' }}>Lost your code? Enter the username you used above to claim it!</p>
+                    <p style={{ marginTop: '10px', color: 'white' }}>
+                      Lost your code? Enter the username you used above to claim
+                      it! (or type it again to verify)
+                    </p>
                   )}
                 </div>
               )}
-              {game.errorMessage && <p style={{ color: 'red' }}>{game.errorMessage}</p>}
+              {game.errorMessage && (
+                <p style={{ color: 'red' }}>{game.errorMessage}</p>
+              )}
             </div>
           </div>
         ))}
       </div>
-       <br></br>
     </div>
   );
+  
 }
 
 export default App;

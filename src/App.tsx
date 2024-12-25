@@ -139,74 +139,100 @@ function App() {
   }, [filter, categoryFilter]); // Run whenever `filter` or `categoryFilter` changes
   
 
-const handleVerifyUsername = async (gameId: string, username: string | undefined) => {
-  if (!username?.trim()) {
-    // Handle invalid username
-    setGames(games =>
-      games.map(game =>
-        game.id === gameId
-          ? { ...game, errorMessage: "Please enter a valid username." }
-          : game
-      )
-    );
-    setShakeGameId(gameId);
-    setTimeout(() => setShakeGameId(null), 500);
-    return;
-  }
-
-  // Save the username in localStorage
-  localStorage.setItem('tempUsername', username);
-  setTempUsername(username);
-
-  try {
-    const gameRef = ref(db, `games/${gameId}`);
-    const gameSnapshot = await get(gameRef);
-
-    if (gameSnapshot.exists()) {
-      const gameData = gameSnapshot.val();
-
-      // Check if the game is already claimed
-      if (gameData.claimed) {
-        setGames(games =>
-          games.map(game =>
-            game.id === gameId
-              ? { ...game, errorMessage: "This game has already been claimed." }
-              : game
-          )
-        );
-        setShakeGameId(gameId);
-        setTimeout(() => setShakeGameId(null), 500);
-        return;
-      }
-
-      const usersRef = ref(db, 'users');
-      const usersSnapshot = await get(usersRef);
-
-      if (usersSnapshot.exists()) {
-        const users = usersSnapshot.val();
-        const userKey = Object.keys(users).find(key => users[key].username === username);
-        const user = userKey ? users[userKey] : null;
-
-        if (user && user.ticketsAvailable > 0) {
-          const gameName = games.find(game => game.id === gameId)?.name;
-          if (gameName) {
-            const newTicketCount = user.ticketsAvailable - 1;
-            const newGamesClaimed = [...(user.gamesClaimed || []), gameName];
-
-            await update(ref(db, `users/${userKey}`), { ticketsAvailable: newTicketCount, gamesClaimed: newGamesClaimed });
-            await update(gameRef, { claimed: true, claimedBy: username });
+  const handleVerifyUsername = async (gameId: string, username: string | undefined) => {
+    if (!username?.trim()) {
+      // Handle invalid username
+      setGames(games =>
+        games.map(game =>
+          game.id === gameId
+            ? { ...game, errorMessage: "Please enter a valid username." }
+            : game
+        )
+      );
+      setShakeGameId(gameId);
+      setTimeout(() => setShakeGameId(null), 500);
+      return;
+    }
+  
+    const normalizedUsername = username.trim().toLowerCase(); // Normalize the username for case-insensitive comparison
+  
+    // Save the normalized username in localStorage
+    localStorage.setItem('tempUsername', normalizedUsername);
+    setTempUsername(normalizedUsername);
+  
+    try {
+      const gameRef = ref(db, `games/${gameId}`);
+      const gameSnapshot = await get(gameRef);
+  
+      if (gameSnapshot.exists()) {
+        const gameData = gameSnapshot.val();
+  
+        // Check if the game is already claimed
+        if (gameData.claimed) {
+          const claimedByUsername = gameData.claimedBy?.toLowerCase(); // Normalize the stored username for comparison
+          if (normalizedUsername === claimedByUsername) {
+            // Username matches, handle already claimed state
             setGames(games =>
               games.map(game =>
                 game.id === gameId
-                  ? { ...game, claimed: true, verifying: false, errorMessage: '', claimedBy: username }
+                  ? { ...game, errorMessage: "This game has already been claimed by you." }
                   : game
               )
             );
           } else {
+            // Different user claimed this game
             setGames(games =>
               games.map(game =>
                 game.id === gameId
-                  ? { ...game, errorMessage: "Game name not found for claiming." }
+                  ? { ...game, errorMessage: "This game has already been claimed by another user." }
+                  : game
+              )
+            );
+          }
+          setShakeGameId(gameId);
+          setTimeout(() => setShakeGameId(null), 500);
+          return;
+        }
+  
+        const usersRef = ref(db, 'users');
+        const usersSnapshot = await get(usersRef);
+  
+        if (usersSnapshot.exists()) {
+          const users = usersSnapshot.val();
+          const userKey = Object.keys(users).find(key => users[key].username.toLowerCase() === normalizedUsername); // Case-insensitive check
+          const user = userKey ? users[userKey] : null;
+  
+          if (user && user.ticketsAvailable > 0) {
+            const gameName = games.find(game => game.id === gameId)?.name;
+            if (gameName) {
+              const newTicketCount = user.ticketsAvailable - 1;
+              const newGamesClaimed = [...(user.gamesClaimed || []), gameName];
+  
+              await update(ref(db, `users/${userKey}`), { ticketsAvailable: newTicketCount, gamesClaimed: newGamesClaimed });
+              await update(gameRef, { claimed: true, claimedBy: normalizedUsername });
+              setGames(games =>
+                games.map(game =>
+                  game.id === gameId
+                    ? { ...game, claimed: true, verifying: false, errorMessage: '', claimedBy: username }
+                    : game
+                )
+              );
+            } else {
+              setGames(games =>
+                games.map(game =>
+                  game.id === gameId
+                    ? { ...game, errorMessage: "Game name not found for claiming." }
+                    : game
+                )
+              );
+              setShakeGameId(gameId);
+              setTimeout(() => setShakeGameId(null), 500);
+            }
+          } else {
+            setGames(games =>
+              games.map(game =>
+                game.id === gameId
+                  ? { ...game, errorMessage: "You do not have enough tickets to claim this game." }
                   : game
               )
             );
@@ -217,7 +243,7 @@ const handleVerifyUsername = async (gameId: string, username: string | undefined
           setGames(games =>
             games.map(game =>
               game.id === gameId
-                ? { ...game, errorMessage: "You do not have enough tickets to claim this game." }
+                ? { ...game, errorMessage: "Error fetching user data from the database." }
                 : game
             )
           );
@@ -228,37 +254,26 @@ const handleVerifyUsername = async (gameId: string, username: string | undefined
         setGames(games =>
           games.map(game =>
             game.id === gameId
-              ? { ...game, errorMessage: "Error fetching user data from the database." }
+              ? { ...game, errorMessage: "Game not found in the database." }
               : game
           )
         );
         setShakeGameId(gameId);
         setTimeout(() => setShakeGameId(null), 500);
       }
-    } else {
+    } catch (error) {
+      console.error("Error verifying username:", error);
       setGames(games =>
         games.map(game =>
           game.id === gameId
-            ? { ...game, errorMessage: "Game not found in the database." }
+            ? { ...game, errorMessage: "An unexpected error occurred. Please try again." }
             : game
         )
       );
       setShakeGameId(gameId);
       setTimeout(() => setShakeGameId(null), 500);
     }
-  } catch (error) {
-    console.error("Error verifying username:", error);
-    setGames(games =>
-      games.map(game =>
-        game.id === gameId
-          ? { ...game, errorMessage: "An unexpected error occurred. Please try again." }
-          : game
-      )
-    );
-    setShakeGameId(gameId);
-    setTimeout(() => setShakeGameId(null), 500);
-  }
-};
+  };  
   const fetchSteamLink = async (gameName: string): Promise<string> => {
     const searchQuery = `${gameName} steam store`;
     const apiKey = '';
@@ -319,10 +334,10 @@ const handleVerifyUsername = async (gameId: string, username: string | undefined
   };
 
   const isVerifiedUser = (game: Game) => {
-    return game.claimedBy === usernameVerification[game.id];
+    return game.claimedBy?.toLowerCase() === usernameVerification[game.id]?.toLowerCase();
   };
   const isNotVerifiedUser = (game: Game) => {
-    return game.claimedBy != usernameVerification[game.id];
+    return game.claimedBy?.toLowerCase() != usernameVerification[game.id]?.toLowerCase();
   };
 
   const filteredGames = games.filter((game) => {

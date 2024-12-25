@@ -1,0 +1,57 @@
+# Node modules
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependency directories
+.bower_components/
+
+# Production build
+build/
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+coverage/
+
+# Parcel-bundler cache (if using Parcel)
+.cache/
+
+# Lint and formatting files
+.eslintcache
+.prettiercache
+
+# Firebase
+firebase-debug.log
+.firebaserc
+
+# Misc
+*.log
+*.lock
+*.bak
+*.tmp
+
+# Ignore compiled output
+*.out
+
+# Ignore specific IDE files
+.vscode/
+*.iml
+*.sublime-workspace
+*.sublime-project
+*.code-workspace

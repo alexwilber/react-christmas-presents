@@ -8,7 +8,7 @@ import reindeerPicture from './assets/reindeer.png';
 import { ref, get, update } from 'firebase/database';
 import { db } from '../firebase-config';
 import Snowfall from 'react-snowfall'
-
+import { query, orderByChild, equalTo } from "firebase/database";
 
 interface Game {
   id: string;
@@ -51,8 +51,10 @@ function App() {
   
         // Apply query filters based on the `filter` and `categoryFilter`
         if (filter === 'claimed') {
+          // @ts-ignore
           gamesQuery = query(ref(db, 'games'), orderByChild('claimed'), equalTo(true));
         } else if (filter === 'unclaimed') {
+          // @ts-ignore
           gamesQuery = query(ref(db, 'games'), orderByChild('claimed'), equalTo(false));
         }
   
@@ -277,6 +279,7 @@ function App() {
     if (filter === "unclaimed" && game.claimed) return false;
     if (
       categoryFilter !== "all" &&
+      // @ts-ignore
       !game.category.some(
         (cat) => cat.trim().toLowerCase() === categoryFilter.toLowerCase()
       )
@@ -530,12 +533,15 @@ function App() {
                     fontSize: '14px',
                   }}
                 >
-                  Categories: {game.category.join(', ')}
+                  Categories: { // @ts-ignore 
+                  game.category.join(', ')}
                 </p>
               )}
-              {game.steamLink && (
+              {// @ts-ignore
+              game.steamLink && (
                 <a
-                  href={game.steamLink}
+                  href={// @ts-ignore
+                    game.steamLink}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ marginTop: '10px' }}

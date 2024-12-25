@@ -11,6 +11,7 @@
   "dependencies": {
     "@coreui/icons": "^3.0.1",
     "@coreui/icons-react": "^2.3.0",
+    "dotenv": "^16.4.7",
     "firebase": "^11.1.0",
     "funky-cursor": "^1.0.0",
     "react": "^18.2.0",
@@ -26,5 +27,4 @@
     "typescript": "^4.9.3",
     "vite": "^4.1.0"
   }
-  
 }

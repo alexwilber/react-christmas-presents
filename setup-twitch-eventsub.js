@@ -9,6 +9,9 @@
  * 3. Run: node setup-twitch-eventsub.js
  */
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 // ============ CONFIGURATION ============
 // You can set these as environment variables or edit directly here
 
@@ -16,11 +19,43 @@ const CLIENT_ID = process.env.TWITCH_clientId;
 const CLIENT_SECRET = process.env.TWITCH_CLIENT_SECRET;
 const WEBHOOK_SECRET = process.env.TWITCH_WEBHOOK_SECRET;
 const BROADCASTER_LOGIN = process.env.TWITCH_channelName;
+const USER_ACCESS_TOKEN = process.env.TWITCH_oauthToken;
 
-// Your Netlify site URL (update this after deploying)
-const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://YOUR-SITE.netlify.app/api/twitch-webhook';
+// Your Netlify site URL
+const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://wilbosgifts.com/api/twitch-webhook';
 
 // ========================================
+
+async function validateUserToken() {
+  console.log('Validating User Access Token...');
+  
+  const response = await fetch('https://id.twitch.tv/oauth2/validate', {
+    headers: {
+      'Authorization': `OAuth ${USER_ACCESS_TOKEN}`
+    }
+  });
+  
+  const data = await response.json();
+  
+  if (!response.ok) {
+    console.error('Token validation failed:', data);
+    throw new Error('User Access Token is invalid or expired');
+  }
+  
+  console.log('✓ Token is valid');
+  console.log(`  User: ${data.login}`);
+  console.log(`  Scopes: ${data.scopes.join(', ')}`);
+  
+  if (!data.scopes.includes('channel:read:redemptions')) {
+    console.error('\n Missing required scope: channel:read:redemptions');
+    console.log('\nYou need to generate a new token with this scope.');
+    console.log('Go to: https://twitchtokengenerator.com/');
+    console.log('Select "channel:read:redemptions" scope and generate a new token.');
+    throw new Error('Token missing channel:read:redemptions scope');
+  }
+  
+  return data;
+}
 
 async function getAppAccessToken() {
   console.log('Getting App Access Token...');
@@ -145,7 +180,7 @@ async function createSubscription(accessToken, broadcasterId) {
   console.log(`  ID: ${data.data[0].id}`);
   
   if (data.data[0].status === 'webhook_callback_verification_pending') {
-    console.log('\n⏳ Waiting for Twitch to verify your webhook...');
+    console.log('\n Waiting for Twitch to verify your webhook...');
     console.log('   Make sure your Netlify function is deployed and accessible!');
   }
   
@@ -156,27 +191,40 @@ async function main() {
   console.log('=== Twitch EventSub Setup ===\n');
   
   // Validate configuration
-  if (CLIENT_SECRET === 'YOUR_CLIENT_SECRET_HERE') {
-    console.error('❌ Please set your TWITCH_CLIENT_SECRET');
+  if (!CLIENT_ID) {
+    console.error('Please set your TWITCH_clientId');
+    process.exit(1);
+  }
+  
+  if (!CLIENT_SECRET) {
+    console.error(' Please set your TWITCH_CLIENT_SECRET');
     console.log('\nGet it from: https://dev.twitch.tv/console/apps');
     process.exit(1);
   }
   
-  if (WEBHOOK_URL.includes('YOUR-SITE')) {
-    console.error('❌ Please set your WEBHOOK_URL to your Netlify site');
-    console.log('\nExample: https://wilbos-free-games.netlify.app/api/twitch-webhook');
+  if (!USER_ACCESS_TOKEN) {
+    console.error(' Please set your TWITCH_oauthToken');
     process.exit(1);
   }
   
-  if (WEBHOOK_SECRET === 'your-webhook-secret-here') {
-    console.error('❌ Please set a TWITCH_WEBHOOK_SECRET');
+  if (!WEBHOOK_SECRET || WEBHOOK_SECRET.length < 10) {
+    console.error(' Please set a TWITCH_WEBHOOK_SECRET (10-100 characters)');
     console.log('\nThis should be a random string. Use the same value in Netlify env vars.');
     process.exit(1);
   }
   
   try {
-    const accessToken = await getAppAccessToken();
-    const broadcasterId = await getBroadcasterId(accessToken);
+    // First validate the user token has the right scope
+    const tokenInfo = await validateUserToken();
+    
+    // Get App Access Token for creating subscription
+    const appAccessToken = await getAppAccessToken();
+    
+    // Get broadcaster ID using app token
+    const broadcasterId = await getBroadcasterId(appAccessToken);
+    
+    // Use app token for creating subscription (required by Twitch)
+    const accessToken = appAccessToken;
     
     // List existing subscriptions
     const existing = await listExistingSubscriptions(accessToken);
@@ -203,7 +251,7 @@ async function main() {
     console.log('3. When someone redeems "Redeem a Free Game!", they\'ll get a ticket!');
     
   } catch (error) {
-    console.error('\n❌ Error:', error.message);
+    console.error('\n Error:', error.message);
     process.exit(1);
   }
 }

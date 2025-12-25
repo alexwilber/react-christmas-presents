@@ -105,15 +105,8 @@ function App() {
             update(ref(db, 'games'), updates);
           }
   
-          // Apply the category filter (client-side filtering)
-          const filteredGames = gamesArray.filter((game) => {
-            if (categoryFilter !== 'all' && !game.category.some((cat) => cat.trim().toLowerCase() === categoryFilter.toLowerCase())) {
-              return false;
-            }
-            return true;
-          });
-  
-          setGames(filteredGames);
+          // Store all games - filtering happens at render time
+          setGames(gamesArray);
            // Calculate unique categories from the full games list
            const categories = Array.from(
             new Set(
@@ -136,7 +129,7 @@ function App() {
     };
   
     fetchFilteredGames();
-  }, [filter, categoryFilter]); // Run whenever `filter` or `categoryFilter` changes
+  }, [filter]); // Run whenever `filter` changes (category filtering happens at render time)
   
 
   const handleVerifyUsername = async (gameId: string, username: string | undefined) => {

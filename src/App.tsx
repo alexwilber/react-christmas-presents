@@ -617,10 +617,7 @@ function App() {
                   style={{ marginTop: '10px' }}
                 >
                   Steam Store Page{' '}
-                  <img
-                    style={{ maxWidth: '12px' }}
-                    src="https://static-00.iconduck.com/assets.00/external-link-icon-2048x2048-wo7lfgrz.png"
-                  />
+                  <span style={{ fontSize: '12px' }}>↗</span>
                 </a>
               )}
               {!game.claimed && !game.verifying && (
@@ -681,7 +678,7 @@ function App() {
                   style={{
                     position: 'relative',
                     width: '100%',
-                    cursor: 'not-allowed',
+                    cursor: 'default',
                     paddingTop: '19px',
                   }}
                 >
@@ -723,9 +720,45 @@ function App() {
                     }}
                   />
                   {isVerifiedUser(game) && game.giftLink && (
-                    <p style={{ marginTop: '10px', color: 'white' }}>
-                      <b>Game Code/Link:</b> {game.giftLink}
-                    </p>
+                    <div style={{ marginTop: '10px', color: 'white' }}>
+                      <b>Game Code/Link:</b>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px',
+                        marginTop: '5px',
+                      }}>
+                        <code style={{
+                          backgroundColor: '#1a1a1a',
+                          padding: '8px 12px',
+                          borderRadius: '5px',
+                          fontSize: '16px',
+                          fontFamily: 'monospace',
+                          userSelect: 'all',
+                          cursor: 'text',
+                        }}>
+                          {game.giftLink}
+                        </code>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(game.giftLink);
+                            alert('Code copied to clipboard!');
+                          }}
+                          style={{
+                            backgroundColor: '#28a745',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 12px',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                          }}
+                        >
+                          📋 Copy
+                        </button>
+                      </div>
+                    </div>
                   )}
                   {isNotVerifiedUser(game) && game.giftLink && (
                     <p style={{ marginTop: '10px', color: 'white' }}>

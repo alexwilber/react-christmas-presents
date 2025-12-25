@@ -27,7 +27,9 @@ function App() {
   const [games, setGames] = useState<Game[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [usernameVerification, setUsernameVerification] = useState<{ [key: string]: string }>({});
-  const [filter, setFilter] = useState<'all' | 'claimed' | 'unclaimed'>('all');
+  const [filter, setFilter] = useState<'all' | 'claimed' | 'unclaimed'>('unclaimed');
+  const [isRetrieveMode, setIsRetrieveMode] = useState(false);
+  const [justClaimedGameId, setJustClaimedGameId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [shakeGameId, setShakeGameId] = useState<string | null>(null);
   const [uniqueCategories, setUniqueCategories] = useState<string[]>([]);
@@ -47,18 +49,8 @@ function App() {
       };
     const fetchFilteredGames = async () => {
       try {
-        let gamesQuery = ref(db, 'games');
-  
-        // Apply query filters based on the `filter` and `categoryFilter`
-        if (filter === 'claimed') {
-          // @ts-ignore
-          gamesQuery = query(ref(db, 'games'), orderByChild('claimed'), equalTo(true));
-        } else if (filter === 'unclaimed') {
-          // @ts-ignore
-          gamesQuery = query(ref(db, 'games'), orderByChild('claimed'), equalTo(false));
-        }
-  
-        // Fetch the filtered games from Firebase
+        // Fetch all games from Firebase (filtering happens client-side)
+        const gamesQuery = ref(db, 'games');
         const snapshot = await get(gamesQuery);
   
         if (snapshot.exists()) {
@@ -129,7 +121,7 @@ function App() {
     };
   
     fetchFilteredGames();
-  }, [filter]); // Run whenever `filter` changes (category filtering happens at render time)
+  }, []); // Fetch all games once on mount, filtering happens client-side
   
 
   const handleVerifyUsername = async (gameId: string, username: string | undefined) => {
@@ -212,6 +204,8 @@ function App() {
               );
               // Auto-fill the verification so user sees the code immediately
               setUsernameVerification(prev => ({ ...prev, [gameId]: normalizedUsername }));
+              // Keep this game visible even though it's now claimed
+              setJustClaimedGameId(gameId);
             } else {
               setGames(games =>
                 games.map(game =>
@@ -336,6 +330,9 @@ function App() {
   };
 
   const filteredGames = games.filter((game) => {
+    // Always show a game that was just claimed (so user can see the code)
+    if (game.id === justClaimedGameId) return true;
+    
     if (filter === "claimed" && !game.claimed) return false;
     if (filter === "unclaimed" && game.claimed) return false;
     if (
@@ -456,8 +453,28 @@ function App() {
             alt="Reindeer Sticker"
           />
           Wilbo's Free Games:
+          {/* Retrieve Claimed Code Button - inline with title */}
+          <button
+            onClick={() => {
+              setIsRetrieveMode(!isRetrieveMode);
+              setFilter(isRetrieveMode ? 'unclaimed' : 'claimed');
+            }}
+            style={{
+              marginLeft: '15px',
+              backgroundColor: isRetrieveMode ? '#28a745' : '#e67e22',
+              color: 'white',
+              padding: '8px 12px',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              verticalAlign: 'middle',
+            }}
+          >
+            {isRetrieveMode ? '← Back to Games' : '🎁 Retrieve Code'}
+          </button>
         </h1>
-  
+
         {/* Info Button */}
         <button
           onClick={() => setIsInfoModalOpen(true)}
@@ -500,24 +517,6 @@ function App() {
               color: 'white',
             }}
           />
-          <select
-            value={filter}
-            onChange={(e) =>
-              setFilter(e.target.value as 'all' | 'claimed' | 'unclaimed')
-            }
-            style={{
-              marginBottom: '20px',
-              padding: '10px',
-              borderRadius: '5px',
-              border: '1px solid #555',
-              backgroundColor: '#222',
-              color: 'white',
-            }}
-          >
-            <option value="all">All Games</option>
-            <option value="claimed">Claimed</option>
-            <option value="unclaimed">Unclaimed</option>
-          </select>
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}

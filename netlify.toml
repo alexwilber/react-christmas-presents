@@ -1,0 +1,14 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Redirect for the webhook endpoint
+[[redirects]]
+  from = "/api/twitch-webhook"
+  to = "/.netlify/functions/twitch-webhook"
+  status = 200
+

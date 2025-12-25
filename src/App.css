@@ -64,3 +64,70 @@ body {
 .shake {
   animation: shake 0.5s ease;
 }
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .header-mascot {
+    width: 60px !important;
+    height: 45px !important;
+    position: static !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    margin: 0 5px !important;
+  }
+  
+  .header-container {
+    padding: 10px !important;
+    top: 0 !important;
+  }
+  
+  .header-title {
+    font-size: 1.1rem !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    margin: 5px 0 !important;
+  }
+  
+  .header-title button {
+    margin-left: 0 !important;
+    margin-top: 5px !important;
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+  }
+  
+  .info-button {
+    position: static !important;
+    margin-top: 10px !important;
+    font-size: 12px !important;
+    padding: 8px !important;
+  }
+  
+  .search-filters {
+    flex-direction: column !important;
+    gap: 5px !important;
+  }
+  
+  .search-filters input,
+  .search-filters select {
+    width: 90% !important;
+    max-width: 300px !important;
+  }
+  
+  .main-content {
+    margin-top: 220px !important;
+  }
+  
+  .game-card {
+    flex: 1 1 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .game-image {
+    width: 200px !important;
+    height: 200px !important;
+  }
+}

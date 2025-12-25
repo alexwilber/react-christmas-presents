@@ -418,6 +418,7 @@ function App() {
   
       {/* Header Section */}
       <div
+        className="header-container"
         style={{
           position: 'fixed',
           top: -30,
@@ -431,9 +432,10 @@ function App() {
           padding: '0px 0',
         }}
       >
-        <h1>
+        <h1 className="header-title">
           <img
             src={santaPicture}
+            className="header-mascot"
             style={{
               width: '200px',
               height: '150px',
@@ -444,6 +446,7 @@ function App() {
           />
           <img
             src={reindeerPicture}
+            className="header-mascot"
             style={{
               width: '160px',
               height: '150px',
@@ -477,6 +480,7 @@ function App() {
 
         {/* Info Button */}
         <button
+          className="info-button"
           onClick={() => setIsInfoModalOpen(true)}
           style={{
             position: 'absolute',
@@ -495,11 +499,13 @@ function App() {
   
         {/* Search and Filters */}
         <div
+          className="search-filters"
           style={{
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
             gap: '10px',
+            flexWrap: 'wrap',
           }}
         >
           <input
@@ -541,8 +547,9 @@ function App() {
   
       {/* Main Content */}
       <div
+        className="main-content"
         style={{
-          marginTop: '100px',
+          marginTop: '180px',
           display: 'flex',
           flexWrap: 'wrap',
           justifyContent: 'space-around',
@@ -552,7 +559,7 @@ function App() {
         {filteredGames.map((game) => (
           <div
             key={game.id}
-            className={shakeGameId === game.id ? 'shake' : ''}
+            className={`game-card ${shakeGameId === game.id ? 'shake' : ''}`}
             style={{
               display: 'flex',
               alignItems: 'center',

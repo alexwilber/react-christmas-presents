@@ -105,11 +105,27 @@ export async function handler(event) {
   const headers = event.headers;
   const body = event.body;
   
+  // Handle empty or missing body (e.g., browser visits)
+  if (!body) {
+    return {
+      statusCode: 200,
+      body: 'Twitch webhook endpoint is active. This endpoint only accepts POST requests from Twitch EventSub.'
+    };
+  }
+  
   // Get Twitch headers
   const messageId = headers[TWITCH_MESSAGE_ID];
   const timestamp = headers[TWITCH_MESSAGE_TIMESTAMP];
   const signature = headers[TWITCH_MESSAGE_SIGNATURE];
   const messageType = headers[TWITCH_MESSAGE_TYPE];
+  
+  // If no Twitch headers, this isn't a valid EventSub request
+  if (!messageType) {
+    return {
+      statusCode: 200,
+      body: 'Twitch webhook endpoint is active.'
+    };
+  }
   
   // Get webhook secret from environment
   const secret = process.env.TWITCH_WEBHOOK_SECRET;
@@ -139,7 +155,16 @@ export async function handler(event) {
     };
   }
   
-  const payload = JSON.parse(body);
+  let payload;
+  try {
+    payload = JSON.parse(body);
+  } catch (e) {
+    console.error('Failed to parse body as JSON:', e);
+    return {
+      statusCode: 400,
+      body: 'Invalid JSON'
+    };
+  }
   
   // Handle verification challenge
   if (messageType === MESSAGE_TYPE_VERIFICATION) {

@@ -213,10 +213,12 @@ function App() {
               setGames(games =>
                 games.map(game =>
                   game.id === gameId
-                    ? { ...game, claimed: true, verifying: false, errorMessage: '', claimedBy: username }
+                    ? { ...game, claimed: true, verifying: false, errorMessage: '', claimedBy: normalizedUsername }
                     : game
                 )
               );
+              // Auto-fill the verification so user sees the code immediately
+              setUsernameVerification(prev => ({ ...prev, [gameId]: normalizedUsername }));
             } else {
               setGames(games =>
                 games.map(game =>
